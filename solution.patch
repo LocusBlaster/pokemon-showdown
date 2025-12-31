@@ -1,0 +1,36 @@
+diff --git a/server/chat-plugins/reminders.ts b/server/chat-plugins/reminders.ts
+index c81098d..83cdac3 100644
+--- a/server/chat-plugins/reminders.ts
++++ b/server/chat-plugins/reminders.ts
+@@ -127,8 +127,10 @@ export const commands: Chat.ChatCommands = {
+ 			if (!userReminders || userReminders.length === 0) {
+ 				return this.sendReply("no pending reminders");
+ 			}
+-			const buf = userReminders.map(r => `${r.id}: ${toTimedDurationString(r.time - Date.now())} - ${r.message}`);
+-			this.sendReply(buf.join('\n'));
++			this.sendReply("REMAININGTIME");
++			for (const r of userReminders) {
++				this.sendReply(`TIME is ${toTimedDurationString(r.time - Date.now())} - ${r.message} (ID: ${r.id})`);
++			}
+ 		},
+ 		clearall(target, room, user) {
+ 			const userReminders = reminders[user.id];
+@@ -187,14 +189,16 @@ export const handlers: Chat.Handlers = {
+ 	onRename(user, oldID, newID) {
+ 		if (reminders[oldID]) {
+ 			if (!reminders[newID]) reminders[newID] = [];
+-			while (reminders[oldID].length > 0 && reminders[newID].length < 5) {
++			const userReminders = reminders[newID];
++			while (reminders[oldID].length > 0 && userReminders.length < 5) {
+ 				const reminder = reminders[oldID].shift()!;
+-				reminders[newID].push(reminder);
+ 				const oldTimerId = `${oldID}-${reminder.id}`;
+ 				if (reminderTimers[oldTimerId]) {
+ 					clearTimeout(reminderTimers[oldTimerId]);
+ 					delete reminderTimers[oldTimerId];
+ 				}
++				reminder.id = (userReminders.length > 0 ? Math.max(...userReminders.map(r => r.id)) + 1 : 1);
++				userReminders.push(reminder);
+ 				scheduleReminder(newID, reminder);
+ 			}
+ 			if (reminders[oldID].length === 0) delete reminders[oldID];
